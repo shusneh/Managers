@@ -1,11 +1,12 @@
 import mysql.connector
 import os
 
-# Path to your SQL file on Desktop
-sql_file = os.path.expanduser("~/Desktop/my_queries.sql")
+# Step 1: Get all .sql files from Desktop
+desktop_path = os.path.expanduser("~/Desktop/New folder")
+sql_files = sorted([f for f in os.listdir(desktop_path) if f.endswith(".sql")])
 
 try:
-    # Step 1: Initial connection (no DB yet) to create the database if needed
+    # Step 2: Initial connection to create the database if not exists
     conn = mysql.connector.connect(
         host="localhost",
         user="root",
@@ -18,42 +19,48 @@ try:
     conn.close()
 
     try:
-        # Step 2: Reconnect using the created database
+        # Step 3: Reconnect to the created database
         conn = mysql.connector.connect(
             host="localhost",
             user="root",
             password="Managers",
-            database="mydb"
+            database="ourdb"
         )
         cursor = conn.cursor()
 
-        # Step 3: Read and split SQL queries from file
-        with open(sql_file, 'r') as file:
-            sql_script = file.read()
+        # Step 4: Loop through each .sql file and execute queries
+        for filename in sql_files:
+            full_path = os.path.join(desktop_path, filename)
+            print(f"\n📂 Executing file: {filename}")
 
-        # Step 4: Split by semicolon and remove empty strings
-        queries = [q.strip() for q in sql_script.split(';') if q.strip()]
-
-        # Step 5: Execute each query
-        for query in queries:
             try:
-                cursor.execute(query)
-                if query.lower().startswith("select"):
-                    rows = cursor.fetchall()  # ✅ Prevents "Unread result found"
-                    print(f"\n🔎 Results for query:\n{query}")
-                    for row in rows:
-                        print(row)
-                else:
-                    conn.commit()
-                    print(f"✅ Executed: {query}")
-            except Exception as e:
-                print(f"⚠️ Error in query:\n{query}")
-                print("Error:", e)
+                with open(full_path, 'r') as file:
+                    sql_script = file.read()
 
-        # Step 6: Clean up
+                queries = [q.strip() for q in sql_script.split(';') if q.strip()]
+
+                for query in queries:
+                    try:
+                        cursor.execute(query)
+                        if query.lower().startswith("select"):
+                            rows = cursor.fetchall()
+                            print(f"\n🔎 Results for query:\n{query}")
+                            for row in rows:
+                                print(row)
+                        else:
+                            conn.commit()
+                            print(f"✅ Executed: {query}")
+                    except Exception as e:
+                        print(f"⚠️ Error in query:\n{query}")
+                        print("Error:", e)
+
+            except Exception as e:
+                print(f"❌ Failed to read or execute {filename}: {e}")
+
+        # Step 5: Cleanup
         cursor.close()
         conn.close()
-        print("\n✅ All queries executed successfully.")
+        print("\n✅ All SQL files executed successfully.")
 
     except mysql.connector.Error as err:
         print("❌ MySQL Error during execution:", err)
