@@ -10,15 +10,17 @@ from email.mime.multipart import MIMEMultipart
 sender_email = "shubhanshusneh4@gmail.com"          # 🔁 your Gmail
 receiver_email = "anupam.nilav11@gmail.com" 
 app_password = "yewp sulp wcvy amms"             # 🔁 16-char Gmail App Password
-
+cc_recipients = ['sweta3038@gmail.com','rishavrajjha24@gmail.com']  # 🔁 CC recipients
 
 def send_email(subject, body):
     msg = MIMEMultipart()
     msg["From"] = sender_email
     msg["To"] = receiver_email
+    msg["Cc"] = ", ".join(cc_recipients)  # Add CC recipients
     msg["Subject"] = subject
     msg.attach(MIMEText(body, "plain"))
 
+    recipients = [receiver_email] + cc_recipients
     try:
         with smtplib.SMTP("smtp.gmail.com", 587) as server:
             server.starttls()
