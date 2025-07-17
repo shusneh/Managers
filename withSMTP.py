@@ -1,20 +1,17 @@
 import mysql.connector
 import os
 
-# 🚨 ADDED FOR EMAIL NOTIFICATION
+# 🚨 EMAIL FUNCTIONALITY START
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
-# Path to your SQL file on Desktop
-sql_file = os.path.expanduser("~/Desktop/my_queries.sql")
+# Fill in your Gmail credentials
+sender_email = "shubhanshusneh4@gmail.com"          # 🔁 your Gmail
+receiver_email = "anupam.nilav11@gmail.com" 
+app_password = "yewp sulp wcvy amms"             # 🔁 16-char Gmail App Password
 
-# 🚨 ADDED FOR EMAIL NOTIFICATION – Add your own values here
-sender_email = "your_email@gmail.com"         # 🔁 YOUR GMAIL
-receiver_email = "receiver_email@gmail.com"   # 🔁 SAME OR DIFFERENT
-app_password = "your_app_password"            # 🔁 GMAIL APP PASSWORD
 
-# 🚨 ADDED FOR EMAIL NOTIFICATION
 def send_email(subject, body):
     msg = MIMEMultipart()
     msg["From"] = sender_email
@@ -27,68 +24,76 @@ def send_email(subject, body):
             server.starttls()
             server.login(sender_email, app_password)
             server.send_message(msg)
-        print("📧 Email sent successfully.")
+        print("📧 Email sent.")
     except Exception as e:
         print("❌ Failed to send email:", e)
+# 🚨 EMAIL FUNCTIONALITY END
 
+# Step 1: Get all .sql files from Desktop
+desktop_path = os.path.expanduser("~/Desktop/New folder")
+sql_files = sorted([f for f in os.listdir(desktop_path) if f.endswith(".sql")])
 
 try:
-    # Step 1: Initial connection (no DB yet) to create the database if needed
+    # Step 2: Initial connection to create the database if not exists
     conn = mysql.connector.connect(
         host="localhost",
         user="root",
         password="Managers"
     )
     cursor = conn.cursor()
-    cursor.execute("CREATE DATABASE IF NOT EXISTS mydb")
+    cursor.execute("CREATE DATABASE IF NOT EXISTS ourdb")
     conn.commit()
     cursor.close()
     conn.close()
 
     try:
-        # Step 2: Reconnect using the created database
+        # Step 3: Reconnect to the created database
         conn = mysql.connector.connect(
             host="localhost",
             user="root",
             password="Managers",
-            database="mydb"
+            database="ourdb"
         )
         cursor = conn.cursor()
 
-        # Step 3: Read and split SQL queries from file
-        with open(sql_file, 'r') as file:
-            sql_script = file.read()
+        # Step 4: Loop through each .sql file and execute queries
+        for filename in sql_files:
+            full_path = os.path.join(desktop_path, filename)
+            print(f"\n📂 Executing file: {filename}")
+            email_log = f"📁Executing File: {filename}\n"
 
-        # Step 4: Split by semicolon and remove empty strings
-        queries = [q.strip() for q in sql_script.split(';') if q.strip()]
-
-        execution_log = ""  # 🚨 ADDED to collect log for email
-
-        # Step 5: Execute each query
-        for query in queries:
             try:
-                cursor.execute(query)
-                if query.lower().startswith("select"):
-                    rows = cursor.fetchall()  # ✅ Prevents "Unread result found"
-                    execution_log += f"\n🔎 Results for query:\n{query}\n"
-                    for row in rows:
-                        execution_log += str(row) + "\n"
-                else:
-                    conn.commit()
-                    execution_log += f"\n✅ Executed: {query}\n"
-            except Exception as e:
-                error_msg = f"\n⚠️ Error in query:\n{query}\nError: {e}\n"
-                execution_log += error_msg
-                print(error_msg)
+                with open(full_path, 'r') as file:
+                    sql_script = file.read()
 
-        # Step 6: Clean up
+                queries = [q.strip() for q in sql_script.split(';') if q.strip()]
+
+                for query in queries:
+                    try:
+                        cursor.execute(query)
+                        if query.lower().startswith("select"):
+                            rows = cursor.fetchall()
+                        else:
+                            conn.commit()
+                            email_log += f"✅ Executed:\n\n"
+                    except Exception as e:
+                        error_msg = f"⚠️ Error in query:\n{query}\nError: {e}\n"
+                        email_log += error_msg
+                        print(error_msg)
+
+            except Exception as e:
+                fail_msg = f"❌ Failed to read or execute {filename}: {e}\n"
+                email_log += fail_msg
+                print(fail_msg)
+
+            # 🚨 Send email after each file
+            email_log += f"✅ Executed: {filename}\n"
+            send_email(f"SQL Execution Report: {filename}", email_log)
+
+        # Step 5: Cleanup
         cursor.close()
         conn.close()
-
-        # 🚨 ADDED – Email after all queries
-        send_email("SQL File Execution Completed ✅", execution_log)
-
-        print("\n✅ All queries executed successfully.")
+        print("\n✅ All SQL files executed successfully.")
 
     except mysql.connector.Error as err:
         print("❌ MySQL Error during execution:", err)
