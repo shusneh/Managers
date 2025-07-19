@@ -35,6 +35,7 @@ def execute_sql_files(folder_path):
         return "❌ No .sql files found."
 
     try:
+        # Step 1: Create database if not exists
         conn = mysql.connector.connect(host="localhost", user="root", password="Managers")
         cursor = conn.cursor()
         cursor.execute("CREATE DATABASE IF NOT EXISTS ourdb")
@@ -42,9 +43,11 @@ def execute_sql_files(folder_path):
         cursor.close()
         conn.close()
 
+        # Step 2: Connect to the database
         conn = mysql.connector.connect(host="localhost", user="root", password="Managers", database="ourdb")
         cursor = conn.cursor()
 
+        # Step 3: Execute SQL files
         for filename in sql_files:
             full_path = os.path.join(folder_path, filename)
             email_log = f"📁 Executing File: {filename} at {datetime.now()}\n"
@@ -57,18 +60,25 @@ def execute_sql_files(folder_path):
                 for query in queries:
                     try:
                         cursor.execute(query)
-                        if not query.lower().startswith("select"):
+
+                        # ✅ Fix: Read results to avoid "Unread result found"
+                        if cursor.with_rows:
+                            cursor.fetchall()
+                        else:
                             conn.commit()
-                        email_log += f"✅ {datetime.now()} Executed: {query}\n"
+
+                        # email_log += f"✅ {datetime.now()} Executed: {query}\n"
                     except Exception as e:
                         email_log += f"⚠️ {datetime.now()} Error: {e} in query: {query}\n"
 
             except Exception as e:
                 email_log += f"❌ {datetime.now()} Failed to read {filename}: {e}\n"
-
+                
+            email_log = f"✅ Executed Successfully: {filename} at {datetime.now()}\n"
             logs.append(email_log)
             send_email(f"SQL Execution Report: {filename}", email_log)
 
+        # Step 4: Cleanup
         cursor.close()
         conn.close()
         return "\n".join(logs)
@@ -77,4 +87,3 @@ def execute_sql_files(folder_path):
         return f"❌ MySQL Error: {e}"
     except Exception as e:
         return f"❌ General Error: {e}"
-
