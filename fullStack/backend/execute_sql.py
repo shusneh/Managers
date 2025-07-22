@@ -74,7 +74,7 @@ def execute_sql_files(folder_path):
             except Exception as e:
                 email_log += f"❌ {datetime.now()} Failed to read {filename}: {e}\n"
                 
-            email_log = f"✅ Executed Successfully: {filename} at {datetime.now()}\n"
+            email_log+= f"✅ Executed Successfully: {filename} at {datetime.now()}\n"
             logs.append(email_log)
             send_email(f"SQL Execution Report: {filename}", email_log)
 

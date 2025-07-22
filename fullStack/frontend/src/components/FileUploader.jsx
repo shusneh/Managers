@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import './FileUploader.css'; // 👈 Create this CSS file
 
 const FileUploader = () => {
   const [folderPath, setFolderPath] = useState('');
   const [log, setLog] = useState('');
-  const [loading, setLoading] = useState(false); // 🆕 loading state
+  const [loading, setLoading] = useState(false);
 
   const handleExecute = async () => {
-    setLoading(true); // 🟡 Start loading
-    setLog('');       // Optional: clear old log
+    setLoading(true);
+    setLog('');
 
     try {
       const response = await axios.post("http://localhost:5000/execute", { folderPath });
@@ -16,13 +17,13 @@ const FileUploader = () => {
     } catch (err) {
       setLog("❌ Execution failed. " + err.message);
     } finally {
-      setLoading(false); // ✅ Stop loading
+      setLoading(false);
     }
   };
 
   return (
-    <div style={{ padding: 30 }}>
-      <h2>📂 SQL Automation Tool</h2>
+    <div className="container">
+      <h2 className="heading">📂 SQL Automation Tool</h2>
 
       <input
         type="text"
@@ -30,24 +31,16 @@ const FileUploader = () => {
         value={folderPath}
         onChange={(e) => setFolderPath(e.target.value)}
         placeholder="Enter absolute path to SQL folder"
-        style={{ width: 400, marginRight: 10 }}
+        className="input"
       />
 
-      <button onClick={handleExecute} disabled={loading} style={{ marginLeft: 10 }}>
+      <button onClick={handleExecute} disabled={loading} className="button">
         {loading ? 'Running...' : 'Run SQL'}
       </button>
 
-      {/* 🕐 Loading indicator */}
-      {loading && (
-        <div style={{ marginTop: 20, fontWeight: 'bold', color: 'blue' }}>
-          Please wait while the SQL files are being executed... ⏳
-        </div>
-      )}
+      {loading && <div className="loading">⏳</div>}
 
-      {/* 📋 Execution log output */}
-      {!loading && log && (
-        <pre style={{ marginTop: 20, whiteSpace: 'pre-wrap' }}>{log}</pre>
-      )}
+      {!loading && log && <pre className="log">{log}</pre>}
     </div>
   );
 };
